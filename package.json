@@ -1,0 +1,32 @@
+{
+  "author": "Harry Brundage <harry.brundage@jadedpixel.com>",
+  "name": "watson",
+  "description": "Memory Leak Sleuthing",
+  "version": "0.1.0",
+  "homepage": "http://github.com/hornairs/watson",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/hornairs/watson.git"
+  },
+  "main": "./lib/watson.js",
+  "bin": {
+    "watson": "./lib/cli.js"
+  },
+  "engines": {
+    "node": "~v0.4.12"
+  },
+  "dependencies": {
+    "sequelize": "1.1.2",
+    "tiller": "0.0.1",
+    "coffee-script": "~>1.1.0",
+    "profiler": "1.0.1",
+    "cli": "~>0.3.8",
+    "temp": "~>0.2.0",
+    "glob": "~>2.0.9",
+    "benchmark": "~>0.2.2",
+    "microtime": "~>0.1.3"
+   },
+  "devDependencies": {
+    "muffin": "~>0.2"
+  }
+}
