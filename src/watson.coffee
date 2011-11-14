@@ -6,7 +6,7 @@ Utils = require './utils'
 Trackers = false
 Watson =
   Utils: Utils
-
+  Benchmark: Benchmark
   trackMemory: ->
     Watson.connect()
     tracker = new Trackers.MemoryTracker(arguments...)
