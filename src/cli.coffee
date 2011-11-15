@@ -69,7 +69,7 @@ commands =
             sha = shas.pop()
             rev = revs.pop()
             return unless sha
-            tmpExec "git co #{sha}", (err, stdout, stderr) ->
+            tmpExec "git checkout #{sha}", (err, stdout, stderr) ->
               throw err if err
               currentGitStatus = "#{rev} (#{sha})"
               cli.info "Checked out #{currentGitStatus}."
