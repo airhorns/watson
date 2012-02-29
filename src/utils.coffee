@@ -6,13 +6,13 @@ Sequelize = require "sequelize"
 Utils = module.exports =
   connect: ->
     dbInfo = url.parse(Utils.getConfiguration()['db'])
-
     database = dbInfo.pathname.slice(1)
     [username, password] = dbInfo.auth.split(':')
     host = dbInfo.hostname
-    port = parseInt(dbInfo.port)
+    options = {host, logging: false}
+    options.port = port if port = parseInt(dbInfo.port)
 
-    sequelize = new Sequelize(database, username, password, {host, port, logging: false})
+    sequelize = new Sequelize(database, username, password, options)
     Utils.connect = -> sequelize
     sequelize
 
@@ -22,7 +22,7 @@ Utils = module.exports =
       json = JSON.parse(fs.readFileSync(configPath))
       for pathKey in ['path', 'tests']
         json[pathKey] = path.resolve(path.dirname(configPath), json[pathKey])
-      Utils._getConfiguration = -> json
+      Utils.getConfiguration = -> json
       json
     else
       throw new Error("Couldn't find configuration at #{configPath}!")

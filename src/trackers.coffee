@@ -1,5 +1,5 @@
 profiler = require 'profiler'
-exec = require('child_process').exec
+{exec} = require 'child_process'
 Data = require './objects'
 Utils = require './utils'
 Benchmark = require 'benchmark'

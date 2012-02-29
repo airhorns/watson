@@ -13,20 +13,21 @@
     "watson": "./lib/cli.js"
   },
   "engines": {
-    "node": "~v0.4.12"
+    "node": "0.6.x"
   },
   "dependencies": {
-    "sequelize": "1.1.2",
+    "sequelize": "~>1.3.3",
     "tiller": "0.0.1",
-    "coffee-script": "~>1.1.0",
-    "profiler": "1.0.1",
-    "cli": "~>0.3.8",
-    "temp": "~>0.2.0",
-    "glob": "~>2.0.9",
-    "benchmark": "~>0.2.2",
-    "microtime": "~>0.1.3"
+    "coffee-script": "1.1.3",
+    "profiler": "1.1.0",
+    "cli": "~>0.4.0",
+    "temp": "~>0.4.0",
+    "glob": "~>3.0.1",
+    "benchmark": "~>0.3.0",
+    "microtime": "~>0.2.0",
+    "async": "~>0.1"
    },
   "devDependencies": {
-    "muffin": "~>0.2"
+    "muffin": "0.2.7"
   }
 }
