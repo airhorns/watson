@@ -32,3 +32,5 @@ Utils = module.exports =
       for k, v of object
         onto[k] = v
     onto
+
+  sync: (callback) -> Utils.connect().sync().success(-> callback()).error(callback)

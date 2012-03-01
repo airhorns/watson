@@ -48,7 +48,4 @@ Point = sequelize.define 'Point',
 Report.hasMany Point
 Point.belongsTo Report
 
-sequelize.sync().on 'failure', (error) ->
-  throw error
-
 module.exports = {Report, Point}

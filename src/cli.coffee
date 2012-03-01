@@ -52,7 +52,7 @@ checkoutSHAWithTests = (sha, rev, tmpDir, rootDir, options, config, callback) ->
 
   async.series [
     checkout = (callback) ->
-      tmpExec "git checkout #{sha}", (err, stdout, stderr) ->
+      tmpExec "git reset --hard && git checkout #{sha}", (err, stdout, stderr) ->
         unless err
           cli.ok "Checked out #{rev} (#{sha})."
         return callback(err)
@@ -85,8 +85,8 @@ checkoutSHAWithTests = (sha, rev, tmpDir, rootDir, options, config, callback) ->
 activeChildren = []
 
 runTest = (tmpDir, testFile, callback) ->
-  cmd = "coffee --nodejs --prof #{testFile}"
   child = spawn 'coffee', ['--nodejs', '--prof', testFile], {cwd: tmpDir}
+  testFile = path.basename(testFile)
   activeChildren.push child
 
   child.stderr.on 'data', (data) ->
@@ -102,7 +102,7 @@ runTest = (tmpDir, testFile, callback) ->
     if code != 0
       callback(Error("Benchmark #{testFile} didn't run successfully on #{currentGitStatus}! See error above."))
     else
-      cli.debug "#{path.basename(testFile)} ran successfully."
+      cli.debug "#{testFile} ran successfully."
       callback(undefined)
 
 process.on 'uncaughtException', (error) ->
@@ -147,7 +147,8 @@ commands =
       cloneToTemp: cloneToTemp
       parseRevs: parseRevs.bind(@, args)
       getTestFiles: getTestFiles.bind(@, options, config)
-      runTests: ['cloneToTemp', 'getTestFiles', 'parseRevs', (callback, results) ->
+      syncTables: Watson.Utils.sync
+      runTests: ['cloneToTemp', 'getTestFiles', 'parseRevs', 'syncTables', (callback, results) ->
         tests = results.getTestFiles
         tmpDir = results.cloneToTemp.tmpDir
         rootDir = results.cloneToTemp.rootDir
@@ -169,7 +170,7 @@ commands =
           strs = for revision, i in revisions
             sha = shas[i]
             "#{sha} (#{revision})"
-          cli.info "Running across these reviisions: \n - " + strs.join('\n - ')
+          cli.info "Running across these revisions: \n - " + strs.join('\n - ')
 
         async.forEachSeries(revisions, (revision, callback) ->
           sha = shas.pop()
