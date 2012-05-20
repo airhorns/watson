@@ -135,7 +135,7 @@ commands =
     else
       for key in args
         do (key) ->
-          Watson.Report.truncateKey(key).on 'success', ->
+          Watson.Report.truncateKeyPattern(key).on 'success', ->
             cli.info "'#{key}' truncated."
 
   run: (args, options, config) ->

@@ -18,9 +18,11 @@ Report = sequelize.define 'Report',
 ,
   underscore: true
   classMethods:
-    truncateKey: (key) ->
-      Report.findAll({where: {key: key}}).on 'success', (reports) ->
+    truncateKeyPattern: (key) ->
+      query = Report.findAll({where: key: "LIKE '%#{key}%'"}).on 'success', (reports) ->
         report.destroyWithPoints() for report in reports
+      console.log query
+      query
 
     getAvailableKeys: ->
       sequelize.query "SELECT DISTINCT `key` FROM `Reports`;", {build: (x) -> x.key}

@@ -39,8 +39,11 @@ class Tracker
       callback(err)
 
   _getSHADescription: (callback) ->
-    exec 'git describe HEAD && git log --pretty=format:"%s (%an)" HEAD...HEAD~1', (err, stdout, stderr) ->
-      callback(err, stdout.toString().trim().split('\n')...)
+    exec 'git name-rev HEAD && git describe HEAD && git log --pretty=format:"%s (%an)" HEAD...HEAD~1', (err, stdout, stderr) ->
+      [branch, sha, human] = stdout.toString().trim().split('\n')
+      branch = branch.replace('HEAD ', '')
+      human = "[#{branch}] #{human}"
+      callback(err, sha, human)
 
 class MemoryTracker extends Tracker
   metric: 'memory'
