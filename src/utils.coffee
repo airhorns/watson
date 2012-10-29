@@ -18,7 +18,7 @@ Utils = module.exports =
 
   getConfiguration: (configPath = './watson.json') ->
     configPath = path.resolve(configPath)
-    if path.existsSync(configPath)
+    if fs.existsSync(configPath)
       json = JSON.parse(fs.readFileSync(configPath))
       for pathKey in ['path', 'tests']
         json[pathKey] = path.resolve(path.dirname(configPath), json[pathKey])

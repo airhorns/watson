@@ -12,6 +12,6 @@ task 'build', 'compile watson and all the tools', (options) ->
         source = muffin.readFile(matches[0], options).then (source) ->
           compiled = muffin.compileString(source, options)
           compiled = "#!/usr/bin/env node\n\n" + compiled
-          muffin.writeFile("lib/cli.js", compiled, muffin.extend({}, options, {mode: 0755})).then ->
+          muffin.writeFile("lib/cli.js", compiled, muffin.extend({}, options, {mode: 0o755})).then ->
             muffin.notify "lib/cli.js", "Compiled bin successfully."
       'src/(.+)\.coffee'   : (matches) -> muffin.compileScript(matches[0], "lib/#{matches[1]}.js", options)
