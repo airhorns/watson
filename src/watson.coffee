@@ -4,9 +4,11 @@ Benchmark = require 'benchmark'
 Utils = require './utils'
 
 Trackers = false
+
 Watson =
   Utils: Utils
   Benchmark: Benchmark
+
   trackMemory: ->
     Watson.connect()
     tracker = new Trackers.MemoryTracker(arguments...)
@@ -29,8 +31,9 @@ Watson =
 
   connect: (options = {}) ->
     Utils.getConfiguration(options.config)
-    Utils.connect()
+    connection = Utils.connect()
     Trackers = require './trackers'
     Watson[k] = v for k, v of (require './objects')
+    connection
 
 module.exports = Watson

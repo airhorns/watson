@@ -5,14 +5,14 @@ Sequelize = require "sequelize"
 
 Utils = module.exports =
   connect: ->
-    dbInfo = url.parse(Utils.getConfiguration()['db'])
-    database = dbInfo.pathname.slice(1)
-    [username, password] = dbInfo.auth.split(':')
-    host = dbInfo.hostname
-    options = {host, logging: false}
-    options.port = port if port = parseInt(dbInfo.port)
+    config = Utils.getConfiguration()
 
-    sequelize = new Sequelize(database, username, password, options)
+    options = 
+      host: config.host
+      logging: false
+    options.port = config.port if config.port
+
+    sequelize = new Sequelize(config.database, config.username, config.password, options)
     Utils.connect = -> sequelize
     sequelize
 
@@ -22,6 +22,13 @@ Utils = module.exports =
       json = JSON.parse(fs.readFileSync(configPath))
       for pathKey in ['path', 'tests']
         json[pathKey] = path.resolve(path.dirname(configPath), json[pathKey])
+
+      dbInfo = url.parse(json['db'])
+      json.database = dbInfo.pathname.slice(1)
+      [json.username, json.password] = dbInfo.auth.split(':')
+      json.host = dbInfo.hostname
+      json.port = parseInt(dbInfo.port)
+
       Utils.getConfiguration = -> json
       json
     else
@@ -33,4 +40,4 @@ Utils = module.exports =
         onto[k] = v
     onto
 
-  sync: (callback) -> Utils.connect().sync().success(-> callback()).error(callback)
+  sync: (callback) -> Utils.connect().sync()

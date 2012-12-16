@@ -13,16 +13,17 @@
     "watson": "./lib/cli.js"
   },
   "engines": {
-    "node": "0.6.x || 0.8.x"
+    "node": "0.8.x"
   },
   "dependencies": {
-    "sequelize": "~>1.3.5",
+    "sequelize": "~>1.6.0",
+    "mysql": "2.0.0-alpha5",
     "coffee-script": "~>1.3.0",
-    "profiler": "1.1.0",
+    "profiler": "1.2.0",
     "cli": "~>0.4.0",
     "temp": "~>0.4.0",
     "glob": "~>3.0.1",
-    "benchmark": "~>0.3.0",
+    "benchmark": "~>1.0.0",
     "microtime": "~>0.2.0",
     "async": "~>0.1.0"
   },
