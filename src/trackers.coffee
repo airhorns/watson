@@ -108,7 +108,7 @@ class TimeTracker extends Tracker
         @suite.abort()
         throw bench.error
       @suite.on 'complete', =>
-        @suite.each (bench) =>
+        @suite.forEach (bench) =>
           console.log String(bench)
           @_saveReport bench, (err) ->
             throw err if err
