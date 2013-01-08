@@ -86,17 +86,21 @@ runTest = (tmpDir, testFile, callback) ->
   testFile = path.basename(testFile)
   global.ACTIVE_CHILDREN.push child
 
+  out = []
   child.stderr.on 'data', (data) ->
     console.warn "From #{testFile} stderr:\n" + data.toString()
 
   child.stdout.on 'data', (data) ->
     data = data.toString()
     unless data.match(/Tracker run/ig) || data.match(/(Report saved)|(Benchmarks completed)|(ops\/sec)/ig)
-      console.warn "From #{testFile} stdout:\n" + data.toString()
+      console.warn "From #{testFile} stdout:\n" + data
+    else
+      out.push data
 
   child.on 'exit', (code) ->
     global.ACTIVE_CHILDREN.splice(global.ACTIVE_CHILDREN.indexOf(child))
-    cli.debug "#{testFile} ran with exit code #{code}"
+    cli.debug "#{testFile} ran with exit code #{code}. Output:"
+    console.log out.join('')
     if code != 0
       callback(Error("Benchmark #{testFile} didn't run successfully on #{currentGitStatus}! See error above."))
     else
