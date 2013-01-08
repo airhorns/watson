@@ -135,7 +135,7 @@ class TimeTracker extends Tracker
           dataPoint = Data.Point.build(x: 0, y: benchmark.stats.mean, note: "mean")
           marginOfErrorPoint = Data.Point.build(x: 1, y: benchmark.stats.rme, note: "relative margin of error")
           deviationPoint = Data.Point.build(x: 2, y: benchmark.stats.deviation, note: "deviation")
-          sizeDataPoint = Data.Point.build(x: 3, y: benchmark.stats.size, note: "size")
+          sizeDataPoint = Data.Point.build(x: 3, y: benchmark.stats.sample.length, note: "size")
 
           report.setPoints([dataPoint, marginOfErrorPoint, deviationPoint, sizeDataPoint]).error((error) ->
             callback(error, report)
