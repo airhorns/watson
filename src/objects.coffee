@@ -21,7 +21,6 @@ Report = sequelize.define 'Report',
     truncateKeyPattern: (key) ->
       query = Report.findAll({where: key: "LIKE '%#{key}%'"}).on 'success', (reports) ->
         report.destroyWithPoints() for report in reports
-      console.log query
       query
 
     getAvailableKeys: ->
