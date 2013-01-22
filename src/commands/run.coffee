@@ -51,7 +51,7 @@ checkoutSHAWithTests = (sha, rev, tmpDir, rootDir, options, config, callback) ->
 
   async.series [
     checkout = (callback) ->
-      tmpExec "git reset --hard && git checkout #{sha}", (err, stdout, stderr) ->
+      tmpExec "git reset --hard && git clean -f && git checkout #{sha}", (err, stdout, stderr) ->
         unless err
           cli.ok "Checked out #{rev} (#{sha})."
         return callback(err)
