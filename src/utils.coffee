@@ -7,7 +7,7 @@ Utils = module.exports =
   connect: ->
     config = Utils.getConfiguration()
 
-    options = 
+    options =
       host: config.host
       logging: false
     options.port = config.port if config.port
