@@ -2,6 +2,8 @@ fs = require 'fs'
 path = require 'path'
 url = require 'url'
 Sequelize = require "sequelize"
+{exec, spawn} = require 'child_process'
+cli = require 'cli'
 
 Utils = module.exports =
   connect: ->
@@ -41,3 +43,17 @@ Utils = module.exports =
     onto
 
   sync: (callback) -> Utils.connect().sync()
+
+  parseRevs: (revs, callback) ->
+    exec "git rev-parse #{revs.join(' ')}", (err, stdout, stderr) ->
+      unless err
+        shas = stdout.toString().trim().split('\n')
+        cli.debug "Parsed revs."
+      callback(err , {shas, revs})
+
+  describeRevs: (revs, callback) ->
+    exec "git describe #{revs.join(' ')}", (err, stdout, stderr) ->
+      unless err
+        shas = stdout.toString().trim().split('\n')
+        cli.debug "Described revs."
+      callback(err , {shas, revs})
