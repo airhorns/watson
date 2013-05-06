@@ -21,13 +21,13 @@ Watson =
     tracker = new Trackers.TimeTracker(arguments...)
 
   ensureCommitted: (sha, callback) ->
-    cmd = "[ $(git merge-base #{sha} HEAD) = $(git rev-parse --verify #{sha}^{commit}) ]"
-    exec cmd, (err, stdout, stderr) ->
-      if err
-        console.error "#{sha} isn't an ancestor, skipping this test."
-        process.exit 0
-      else
-        callback?()
+    Watson.Utils.checkCommited sha, (err, committed) ->
+    throw err if err
+    if committed
+      callback?()
+    else
+      console.error "#{sha} isn't an ancestor, skipping this test."
+      process.exit 0
 
   connect: (options = {}) ->
     Utils.getConfiguration(options.config)

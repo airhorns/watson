@@ -71,3 +71,11 @@ Utils = module.exports =
         shas = stdout.toString().trim().split('\n')
         cli.debug "Described revs."
       callback(err , {shas, revs})
+
+  checkCommited: (sha, callback) ->
+    cmd = "[ $(git merge-base #{sha} HEAD) = $(git rev-parse --verify #{sha}^{commit}) ]"
+    exec cmd, (err, stdout, stderr) ->
+      if err
+        callback(null, false)
+      else
+        callback(null, true)

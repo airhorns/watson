@@ -1,5 +1,5 @@
 Watson     = require '../watson'
-Data       = require '../objects'
+Trackers   = require '../trackers'
 coffee     = require 'coffee-script'
 express    = require 'express'
 cli        = require 'cli'
@@ -28,7 +28,11 @@ exports.command = (args, options, config) ->
   testDir = config['tests']
   app = express()
 
-  app.use(express.logger());
+  app.use(express.logger())
+  app.use(express.json())
+
+  app.get '/', (req, res, next) -> res.redirect("/tests/")
+
   app.get '/report.html', (req, res, next) ->
     res.set('Content-Type', 'text/html')
     cli.info "Serving #{req.params}"
@@ -54,7 +58,17 @@ exports.command = (args, options, config) ->
 
   app.use '/tests', express.directory(testDir)
   app.use '/tests', express.static(testDir)
-  app.post '/results', (req, res) ->
+  app.post '/save_results', (req, res, next) ->
+    data = res.body
+
+    switch data.metric
+      when 'time'
+        report = new Trackers.TimeTracker(data.name, ->)
+        report._saveReport data.bench, (err) ->
+          if err
+            next(err)
+          else
+            res.json(null)
 
   app.listen(5000)
   cli.info "Watson listening on port 5000"
