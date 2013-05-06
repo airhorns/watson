@@ -8,6 +8,7 @@ path       = require 'path'
 url        = require 'url'
 browserify = require 'browserify'
 coffeeify  = require 'coffeeify'
+uaparser   = require 'ua-parser'
 
 TEMPLATE   = (filename, script) ->
   """
@@ -59,16 +60,21 @@ exports.command = (args, options, config) ->
   app.use '/tests', express.directory(testDir)
   app.use '/tests', express.static(testDir)
   app.post '/save_results', (req, res, next) ->
-    data = res.body
+    data = req.body
+    userAgent = uaparser.parse(req.get("User-Agent"))
 
     switch data.metric
-      when 'time'
-        report = new Trackers.TimeTracker(data.name, ->)
-        report._saveReport data.bench, (err) ->
-          if err
-            next(err)
-          else
-            res.json(null)
+      when 'times'
+        new Trackers.TimeTracker data.name, (err, suite, tracker) ->
+          return next(err) if err
+          tracker.userAgent = userAgent.ua.toString()
+          tracker.os        = userAgent.os.toString()
+          tracker._saveReport data.data, (err) ->
+            return next(err) if err
+            res.json({success: true})
+            res.end()
+      else
+        res.json(402, {status: "unknown metric"})
 
   app.listen(5000)
   cli.info "Watson listening on port 5000"

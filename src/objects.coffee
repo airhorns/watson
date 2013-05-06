@@ -15,6 +15,12 @@ Report = sequelize.define 'Report',
   human:
     type: Sequelize.STRING
     allowNull: false
+  userAgent:
+    type: Sequelize.STRING
+    allowNull: false
+  os:
+    type: Sequelize.STRING
+    allowNull: false
 ,
   underscore: true
   classMethods:

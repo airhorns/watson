@@ -10,6 +10,8 @@ class Tracker
   metric: ''
   constructor: ->
     @points = []
+    @userAgent = "node #{process.version}"
+    @os = process.platform
 
   setup: (callback) ->
     @report = Data.Report.build(key: @key, metric: @metric)
@@ -113,7 +115,7 @@ class TimeTracker extends Tracker
           @_saveReport bench, (err) ->
             throw err if err
             console.log "Report saved!"
-      callback(error, @suite)
+      callback(error, @suite, @)
 
   setup: (callback) ->
     @_getSHADescription (err, sha, human) =>
@@ -123,28 +125,37 @@ class TimeTracker extends Tracker
       callback(err)
 
   _saveReport: (benchmark, callback) =>
-    key = "#{@name}: #{benchmark.name}"
-    Data.Report.findAll(where: {sha: @sha, key: key, metric: @metric})
-      .success((oldReports) =>
-        oldReport.destroyWithPoints() for oldReport in oldReports
+    @key = "#{@name}: #{benchmark.name}"
+    Data.Report.findAll(where: @_reportParams()).success((oldReports) =>
+      oldReport.destroyWithPoints() for oldReport in oldReports
 
-        report = Data.Report.build({sha: @sha, human: @human, key, metric: @metric})
-        report.save().error((error) ->
-          callback(error)
-        ).success(=>
-          dataPoint = Data.Point.build(x: 0, y: benchmark.stats.mean, note: "mean")
-          marginOfErrorPoint = Data.Point.build(x: 1, y: benchmark.stats.rme, note: "relative margin of error")
-          deviationPoint = Data.Point.build(x: 2, y: benchmark.stats.deviation, note: "deviation")
-          sizeDataPoint = Data.Point.build(x: 3, y: benchmark.stats.sample.length, note: "size")
+      params = @_reportParams()
+      params.human = @human
+      report = Data.Report.build(params)
+      report.save().error((error) ->
+        callback(error)
+      ).success(=>
+        dataPoint = Data.Point.build(x: 0, y: benchmark.stats.mean, note: "mean")
+        marginOfErrorPoint = Data.Point.build(x: 1, y: benchmark.stats.rme, note: "relative margin of error")
+        deviationPoint = Data.Point.build(x: 2, y: benchmark.stats.deviation, note: "deviation")
+        sizeDataPoint = Data.Point.build(x: 3, y: benchmark.stats.sample.length, note: "size")
 
-          report.setPoints([dataPoint, marginOfErrorPoint, deviationPoint, sizeDataPoint]).error((error) ->
-            callback(error, report)
-          ).success(->
-            callback(undefined, report)
-          )
+        report.setPoints([dataPoint, marginOfErrorPoint, deviationPoint, sizeDataPoint]).error((error) ->
+          callback(error, report)
+        ).success(->
+          callback(undefined, report)
         )
       )
-      .error(callback)
+    ).error(callback)
     true
+
+  _reportParams: ->
+    {
+      sha: @sha
+      metric: @metric
+      userAgent: @userAgent
+      os: @os
+      key: @key
+    }
 
 module.exports = {Tracker, MemoryTracker, TimeTracker}

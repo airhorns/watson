@@ -6,14 +6,16 @@ class Tracker
     @points = []
 
   _saveReport: (data, callback) ->
-    debugger
     reqwest
       url: '/save_results'
       method: 'post'
-      data:
-        type: @metric
+      type: 'json'
+      contentType: 'application/json'
+      data: JSON.stringify {
+        metric: @metric
         name: @name
         data: data
+      }
       success: (resp) -> callback(null)
       error: (err) -> callback(err)
 
@@ -24,6 +26,7 @@ class TimeTracker extends Tracker
     super
     @suite = new Benchmark.Suite name
     @suite.on 'error', (error, bench) =>
+      bject
       @suite.abort()
       throw bench.error
     @suite.on 'complete', =>
@@ -32,6 +35,6 @@ class TimeTracker extends Tracker
         @_saveReport bench, (err) ->
           throw err if err
           console.log "Report saved!"
-    callback(null, @suite)
+    callback(null, @suite, @)
 
 module.exports = {TimeTracker}
