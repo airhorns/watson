@@ -10,3 +10,5 @@ module.exports =
     tracker = new Trackers.TimeTracker(arguments...)
 
   ensureCommitted: (sha, callback) -> callback()
+
+  makeADom: -> true # Horray for browsers!

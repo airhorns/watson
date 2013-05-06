@@ -9,6 +9,12 @@ Watson =
   Utils: Utils
   Benchmark: Benchmark
 
+  makeADom: ->
+    jsdom = require 'jsdom'
+    global.window = jsdom.jsdom("<html><head><script></script></head><body></body></html>").createWindow()
+    global.document = window.document
+    global.Benchmark = Benchmark
+
   trackMemory: ->
     Watson.connect()
     tracker = new Trackers.MemoryTracker(arguments...)

@@ -57,9 +57,7 @@ exports.command = (args, options, config) ->
       for url in urls
         defaultStack.forEach (settings) ->
           settings = $extend({url}, settings)
-          console.log settings
           client.createWorker settings, (err, worker) ->
-            console.log(err)
             throw err if err
             cli.info "Created worker ID=#{worker.id} heading to #{url} using #{printBrowser(settings)}"
 

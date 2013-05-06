@@ -31,7 +31,8 @@
     "browserify": "~>2.13.2",
     "coffeeify": "~>0.4.0",
     "ua-parser": "~>0.3.2",
-    "node-browserstack": "git://github.com/ably-forks/node-browserstack.git#c29160666504f5d91c1dedaa33e7d04b1dc8516a"
+    "node-browserstack": "git://github.com/ably-forks/node-browserstack.git#c29160666504f5d91c1dedaa33e7d04b1dc8516a",
+    "jsdom": "~0.6.0"
   },
   "devDependencies": {
     "muffin": "~>0.8.1"

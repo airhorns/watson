@@ -40,8 +40,8 @@ exports.command = (args, options, config) ->
 
   app.get '/report.html', (req, res, next) ->
     res.set('Content-Type', 'text/html')
-    cli.info "Serving #{req.params}"
     testFile = req.query['file']
+    cli.info "Serving #{testFile}"
     unless testFile?
       next(new Error("File parameter needed"))
       return
