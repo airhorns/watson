@@ -15,13 +15,17 @@ TEMPLATE   = (filename, script) ->
   <html>
     <head>
       <title>Watson - #{filename}</title>
+      <script type="text/javascript" src="/watson/html5shiv.js"></script>
+      <script type="text/javascript" src="/watson/es5-shim.min.js"></script>
+      <script type="text/javascript" src="/watson/es5-sham.min.js"></script>
     </head>
     <body>
       <h1>Watson - #{filename}</h1>
+      <ul id="results"></ul>
+      <script type="text/javascript">
+      #{script}
+      </script>
     </body>
-    <script>
-    #{script}
-    </script>
   </html>
   """
 
@@ -76,5 +80,6 @@ exports.command = (args, options, config) ->
       else
         res.json(402, {status: "unknown metric"})
 
+  app.use '/watson', express.static(path.join(__dirname, '..', 'web'))
   app.listen(5000)
   cli.info "Watson listening on port 5000"

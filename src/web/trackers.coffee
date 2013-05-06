@@ -26,12 +26,10 @@ class TimeTracker extends Tracker
     super
     @suite = new Benchmark.Suite name
     @suite.on 'error', (error, bench) =>
-      bject
       @suite.abort()
       throw bench.error
     @suite.on 'complete', =>
       @suite.forEach (bench) =>
-        console.log String(bench)
         @_saveReport bench, (err) ->
           throw err if err
           console.log "Report saved!"
