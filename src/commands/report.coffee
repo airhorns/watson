@@ -35,8 +35,11 @@ report = (shasAndRevs, reports) ->
     reportsForSha = reports[key]
     reportsForSha.forEach (report) ->
       report.getPoints().on('error', (e) -> throw e).on('success', (points) ->
-        points = indexedBy(points, 'note')
-        console.log "Result on #{report.sha}: #{points.mean[0].y * 1000} +- #{points["relative margin of error"][0].y} #{report.human}"
+        if points.length > 0
+          points = indexedBy(points, 'note')
+          console.log "Result on #{report.sha}: #{points.mean[0].y * 1000} +- #{points["relative margin of error"][0].y} #{report.human}"
+        else
+          console.warn "No points found for #{report.sha}"
         callback()
       )
 

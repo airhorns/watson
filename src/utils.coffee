@@ -20,16 +20,30 @@ Utils = module.exports =
 
   getConfiguration: (configPath = './watson.json') ->
     configPath = path.resolve(configPath)
+
+    # File like
+    #"databases": {
+      #"default": {
+        #"type": "mysql",
+        #"user": "root",
+        #"host": "localhost",
+        #"port": 13306,
+        #"poolsize": 3,
+        #"database": "watson"
+      #}
+    #},
+    #
     if fs.existsSync(configPath)
       json = JSON.parse(fs.readFileSync(configPath))
       for pathKey in ['path', 'tests']
         json[pathKey] = path.resolve(path.dirname(configPath), json[pathKey])
 
-      dbInfo = url.parse(json['db'])
-      json.database = dbInfo.pathname.slice(1)
-      [json.username, json.password] = dbInfo.auth.split(':')
-      json.host = dbInfo.hostname
-      json.port = parseInt(dbInfo.port)
+      dbInfo = json['databases']['default']
+      json.database = dbInfo.database
+      json.username = dbInfo.user
+      json.password = dbInfo.pass
+      json.host     = dbInfo.host
+      json.port     = dbInfo.port
 
       Utils.getConfiguration = -> json
       json
