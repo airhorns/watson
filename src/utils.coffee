@@ -1,9 +1,11 @@
-fs = require 'fs'
-path = require 'path'
-url = require 'url'
-Sequelize = require "sequelize"
+fs            = require 'fs'
+path          = require 'path'
+url           = require 'url'
+Sequelize     = require "sequelize"
 {exec, spawn} = require 'child_process'
-cli = require 'cli'
+cli           = require 'cli'
+temp          = require 'temp'
+async         = require 'async'
 
 Utils = module.exports =
   connect: ->
@@ -21,20 +23,9 @@ Utils = module.exports =
   getConfiguration: (configPath = './watson.json') ->
     configPath = path.resolve(configPath)
 
-    # File like
-    #"databases": {
-      #"default": {
-        #"type": "mysql",
-        #"user": "root",
-        #"host": "localhost",
-        #"port": 13306,
-        #"poolsize": 3,
-        #"database": "watson"
-      #}
-    #},
-    #
     if fs.existsSync(configPath)
       json = JSON.parse(fs.readFileSync(configPath))
+      json.configPath = configPath
       for pathKey in ['path', 'tests']
         json[pathKey] = path.resolve(path.dirname(configPath), json[pathKey])
 
@@ -79,3 +70,51 @@ Utils = module.exports =
         callback(null, false)
       else
         callback(null, true)
+
+  cloneToTemp: (callback) ->
+    tmpDir = temp.mkdirSync()
+
+    # Clone repo to tmpdir
+    exec "git rev-parse --show-cdup", (err, stdout, stderr) ->
+      return callback(err) if err
+      rootDir = path.resolve(stdout.toString().trim())
+
+      exec "git clone #{rootDir} #{tmpDir}", (err, stdout, stderr) ->
+        cli.ok "Cloned repo to temp dir #{tmpDir}." unless err
+        callback(err, {tmpDir, rootDir})
+
+  checkoutSHAWithTests: (sha, rev, tmpDir, rootDir, options, config, callback) ->
+    tmpExec = (args...) -> exec "cd #{tmpDir} && #{args.shift()}", args...
+    testDir = config['tests']
+
+    async.series [
+      checkout = (callback) ->
+        tmpExec "git reset --hard && git clean -f && git checkout #{sha}", (err, stdout, stderr) ->
+          unless err
+            cli.ok "Checked out #{rev} (#{sha})."
+          return callback(err)
+      ,
+      install = (callback) ->
+        cli.spinner "Installing dependencies... "
+        command = if options['link-node-modules']
+          "rm -rf #{tmpDir}/node_modules && ln -s #{rootDir}/node_modules #{tmpDir}/node_modules"
+        else
+          "npm install"
+        tmpExec command, (err) ->
+          cli.spinner "Installing depenencies... done!\n", true
+          callback(err)
+      ,
+      copyTests = (callback) ->
+        tmpTestDir = testDir.replace(rootDir, tmpDir)
+        rootWatsonConfig = path.resolve(process.cwd(), options.config)
+        tmpWatsonConfig = path.join(tmpDir, 'watson.json')
+        cmd = "rm -rf #{tmpTestDir} &&
+               rm -f #{tmpWatsonConfig} &&
+               mkdir -p #{tmpTestDir} &&
+               cp -r #{testDir}/* #{tmpTestDir} &&
+               ln -s #{rootWatsonConfig} #{tmpWatsonConfig}"
+
+        tmpExec cmd, (err, stdout, stderr) ->
+          cli.debug "Tests copied to temp dir."
+          callback(err)
+    ], callback

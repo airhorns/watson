@@ -12,18 +12,6 @@ syncTables = (callback) ->
   Watson.Utils.sync().complete (err) ->
     cli.debug "Synced tables" unless err
     callback(err)
-  
-cloneToTemp = (callback) ->
-  tmpDir = temp.mkdirSync()
-
-  # Clone repo to tmpdir
-  exec "git rev-parse --show-cdup", (err, stdout, stderr) ->
-    return callback(err) if err
-    rootDir = path.resolve(stdout.toString().trim())
-
-    exec "git clone #{rootDir} #{tmpDir}", (err, stdout, stderr) ->
-      cli.ok "Cloned repo to temp dir #{tmpDir}." unless err
-      callback(err, {tmpDir, rootDir})
 
 parseRevs = (revs, callback) ->
   if !revs || revs.length == 0
@@ -44,42 +32,6 @@ getTestFiles = (options, config, callback) ->
   glob testGlob, {}, (err, files) ->
     cli.debug "Got test files." unless err
     callback(err, files)
-
-checkoutSHAWithTests = (sha, rev, tmpDir, rootDir, options, config, callback) ->
-  tmpExec = (args...) -> exec "cd #{tmpDir} && #{args.shift()}", args...
-  testDir = config['tests']
-
-  async.series [
-    checkout = (callback) ->
-      tmpExec "git reset --hard && git clean -f && git checkout #{sha}", (err, stdout, stderr) ->
-        unless err
-          cli.ok "Checked out #{rev} (#{sha})."
-        return callback(err)
-    ,
-    install = (callback) ->
-      cli.spinner "Installing dependencies... "
-      command = if options['link-node-modules']
-        "rm -rf #{tmpDir}/node_modules && ln -s #{rootDir}/node_modules #{tmpDir}/node_modules"
-      else
-        "npm install"
-      tmpExec command, (err) ->
-        cli.spinner "Installing depenencies... done!\n", true
-        callback(err)
-    ,
-    copyTests = (callback) ->
-      tmpTestDir = testDir.replace(rootDir, tmpDir)
-      rootWatsonConfig = path.resolve(process.cwd(), options.config)
-      tmpWatsonConfig = path.join(tmpDir, 'watson.json')
-      cmd = "rm -rf #{tmpTestDir} &&
-             rm -f #{tmpWatsonConfig} &&
-             mkdir -p #{tmpTestDir} &&
-             cp -r #{testDir}/* #{tmpTestDir} &&
-             ln -s #{rootWatsonConfig} #{tmpWatsonConfig}"
-
-      tmpExec cmd, (err, stdout, stderr) ->
-        cli.debug "Tests copied to temp dir."
-        callback(err)
-  ], callback
 
 runTest = (tmpDir, testFile, callback) ->
   child = spawn 'coffee', ['--nodejs', '--prof', testFile], {cwd: tmpDir}
@@ -126,7 +78,7 @@ exports.command =  (args, options, config) ->
   # Get tests
 
   async.auto
-    cloneToTemp: cloneToTemp
+    cloneToTemp: Watson.Utils.cloneToTemp
     parseRevs: parseRevs.bind(@, args)
     syncTables: syncTables
     getTestFiles: getTestFiles.bind(@, options, config)
@@ -157,7 +109,7 @@ exports.command =  (args, options, config) ->
       async.forEachSeries(revisions, (revision, callback) ->
         sha = shas.pop()
         cli.debug "Running tests for sha #{sha}"
-        checkoutSHAWithTests revision, sha, tmpDir, rootDir, options, config, (err) ->
+        Watson.Utils.checkoutSHAWithTests revision, sha, tmpDir, rootDir, options, config, (err) ->
           return callback(err) if err
           runAllTests(tmpDir, localTests, callback)
       , callback)

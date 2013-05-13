@@ -9,6 +9,7 @@ url        = require 'url'
 browserify = require 'browserify'
 coffeeify  = require 'coffeeify'
 uaparser   = require 'ua-parser'
+{fork}     = require 'child_process'
 
 TEMPLATE   = (filename, script) ->
   """
@@ -30,56 +31,73 @@ TEMPLATE   = (filename, script) ->
   """
 
 exports.command = (args, options, config) ->
-  testDir = config['tests']
-  app = express()
+  if args[0]?
+    # Serve a rev instead of the local dir
+    revision = sha = args[0]
+    cli.debug "Checking out #{revision} to serve."
+    rev = args[0]
+    Watson.Utils.cloneToTemp (err, {tmpDir, rootDir}) ->
+      throw err if err
+      Watson.Utils.checkoutSHAWithTests revision, sha, tmpDir, rootDir, options, config, (err) ->
+        throw err if err
+        configPath = Watson.Utils.getConfiguration()['configPath']
+        cwd = path.dirname(configPath.replace(rootDir, tmpDir))
 
-  app.use(express.logger())
-  app.use(express.json())
+        server = fork(path.join(__dirname, '..', 'cli.js'), ['serve'], {cwd})
+        cli.debug "Spawned server as #{server.pid}"
+        server.on 'close', ->
+          process.exit()
+  else
+    testDir = config['tests']
+    app = express()
 
-  app.get '/', (req, res, next) -> res.redirect("/tests/")
+    app.use(express.logger())
+    app.use(express.json())
 
-  app.get '/report.html', (req, res, next) ->
-    res.set('Content-Type', 'text/html')
-    testFile = req.query['file']
-    cli.info "Serving #{testFile}"
-    unless testFile?
-      next(new Error("File parameter needed"))
-      return
+    app.get '/', (req, res, next) -> res.redirect("/tests/")
 
-    testFilePath = path.join testDir, testFile
-    packager = browserify(testFilePath)
-    packager.transform(coffeeify)
-    packager.bundle (err, script) ->
-      return next(err) if err
-      res.send(TEMPLATE(testFilePath, script))
+    app.get '/report.html', (req, res, next) ->
+      res.set('Content-Type', 'text/html')
+      testFile = req.query['file']
+      cli.info "Serving #{testFile}"
+      unless testFile?
+        next(new Error("File parameter needed"))
+        return
 
-  app.use '/tests', (req, res, next) ->
-    return next() if 'GET' isnt req.method and 'HEAD' isnt req.method
-    pathname = url.parse(req.url).pathname
-    if /\.coffee$/.test pathname
-      res.redirect("/report.html?file=#{pathname}")
-    else
-      next()
+      testFilePath = path.join testDir, testFile
+      packager = browserify(testFilePath)
+      packager.transform(coffeeify)
+      packager.bundle (err, script) ->
+        return next(err) if err
+        res.send(TEMPLATE(testFilePath, script))
 
-  app.use '/tests', express.directory(testDir)
-  app.use '/tests', express.static(testDir)
-  app.post '/save_results', (req, res, next) ->
-    data = req.body
-    userAgent = uaparser.parse(req.get("User-Agent"))
-
-    switch data.metric
-      when 'times'
-        new Trackers.TimeTracker data.name, (err, suite, tracker) ->
-          return next(err) if err
-          tracker.userAgent = userAgent.ua.toString()
-          tracker.os        = userAgent.os.toString()
-          tracker._saveReport data.data, (err) ->
-            return next(err) if err
-            res.json({success: true})
-            res.end()
+    app.use '/tests', (req, res, next) ->
+      return next() if 'GET' isnt req.method and 'HEAD' isnt req.method
+      pathname = url.parse(req.url).pathname
+      if /\.coffee$/.test pathname
+        res.redirect("/report.html?file=#{pathname}")
       else
-        res.json(402, {status: "unknown metric"})
+        next()
 
-  app.use '/watson', express.static(path.join(__dirname, '..', 'web'))
-  app.listen(5000)
-  cli.info "Watson listening on port 5000"
+    app.use '/tests', express.directory(testDir)
+    app.use '/tests', express.static(testDir)
+    app.post '/save_results', (req, res, next) ->
+      data = req.body
+      userAgent = uaparser.parse(req.get("User-Agent"))
+
+      switch data.metric
+        when 'times'
+          new Trackers.TimeTracker data.name, (err, suite, tracker) ->
+            return next(err) if err
+            tracker.userAgent = userAgent.ua.toString()
+            tracker.os        = userAgent.os.toString()
+            tracker._saveReport data.data, (err) ->
+              return next(err) if err
+              res.json({success: true})
+              res.end()
+        else
+          res.json(402, {status: "unknown metric"})
+
+    app.use '/watson', express.static(path.join(__dirname, '..', 'web'))
+    app.listen(5000)
+    cli.info "Watson listening on port 5000"

@@ -21,7 +21,6 @@ defaultStack = [
   ["ie", "9.0", "Windows", "7"]
   ["ie", "8.0", "Windows", "XP"]
   ["Mobile Safari", null, "ios", "5.0", "iPad 2 (5.0)"]
-  ["Android Browser", null, "android", "4.0", "Samsung Galaxy Nexus"]
 ].map (settings) ->
   [browser, browser_version, os, os_version, device] = settings
   hash = {browser, browser_version, os, os_version, device}
@@ -38,7 +37,7 @@ defaultStack = [
 exports.command = (args, options, config) ->
   client = browserstack.createClient({username: options.username, password: options.password})
   switch args[0]
-    when 'kill'
+    when 'kill_all'
       client.getWorkers (err, workers) ->
         throw err if err
         workers.forEach (worker) ->
@@ -70,6 +69,13 @@ exports.command = (args, options, config) ->
       client.getWorkers (err, workers) ->
         throw err if err
         cli.info "Workers: \n - " + workers.map(printWorker).join('\n - ')
+
+    when 'kill_some'
+      workerIds = args.slice(1)
+      workerIds.forEach (id) ->
+        client.terminateWorker id, (err) ->
+          throw err if err
+          cli.info "Terminated worker #{worker.id}"
 
     else
       cli.error "Unknown stack command #{args[0]}!"
