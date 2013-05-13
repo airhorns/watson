@@ -28,12 +28,12 @@ Watson =
 
   ensureCommitted: (sha, callback) ->
     Watson.Utils.checkCommited sha, (err, committed) ->
-    throw err if err
-    if committed
-      callback?()
-    else
-      console.error "#{sha} isn't an ancestor, skipping this test."
-      process.exit 0
+      throw err if err
+      if committed
+        callback?()
+      else
+        console.error "#{sha} isn't an ancestor, skipping this test."
+        process.exit 0
 
   connect: (options = {}) ->
     Utils.getConfiguration(options.config)
