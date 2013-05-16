@@ -33,8 +33,12 @@ getTestFiles = (options, config, callback) ->
     cli.debug "Got test files." unless err
     callback(err, files)
 
-runTest = (tmpDir, testFile, callback) ->
-  child = spawn 'coffee', ['--nodejs', '--prof', testFile], {cwd: tmpDir}
+runTest = (tmpDir, options, testFile, callback) ->
+  if options.trace
+    child = spawn 'coffee', ['--nodejs','--trace-inlining --trace-deopt --trace-opt --prof', testFile], {cwd: tmpDir}
+  else
+    child = spawn 'coffee', ['--nodejs','--prof', testFile], {cwd: tmpDir}
+
   testFile = path.basename(testFile)
   global.ACTIVE_CHILDREN.push child
 
@@ -45,7 +49,10 @@ runTest = (tmpDir, testFile, callback) ->
   child.stdout.on 'data', (data) ->
     data = data.toString()
     unless data.match(/Tracker run/ig) || data.match(/(Report saved)|(Benchmarks completed)|(ops\/sec)/ig)
-      console.warn "From #{testFile} stdout:\n" + data
+      if options.trace
+        fs.appendFile( "./#{testFile}-trace.log", data )
+      else
+        console.warn "From #{testFile} stdout:\n" + data
     else
       out.push data
 
@@ -53,14 +60,60 @@ runTest = (tmpDir, testFile, callback) ->
     global.ACTIVE_CHILDREN.splice(global.ACTIVE_CHILDREN.indexOf(child))
     cli.debug "#{testFile} ran with exit code #{code}. Output:"
     console.log out.join('')
+
+    #v8 prof will include the path in the report so we want it to be constant
+    destFile = path.resolve("./#{testFile}-v8.log") 
+    
+    fs.rename( tmpDir + "/v8.log", destFile, (err) -> console.warn( "couldn't rename file: #{destFile}: #{err}") if err)
+  
+    if options.v8prof
+      cli.debug "Running V8 Profile Analyzer"
+      parseV8Log( destFile, testFile, tmpDir, (err) -> fs.unlink( destFile ) )
     if code != 0
       callback(Error("Benchmark #{testFile} didn't run successfully on #{currentGitStatus}! See error above."))
     else
       callback(undefined)
 
-runAllTests = (tmpDir, tests, callback) ->
+saveProfilerReport = ( output, testFile, tmpDir ) ->
+  t = require '../trackers'
+  pf = new t.ProfileTracker()
+  pf.cwd = tmpDir
+  pf.setup( (err) ->
+    if err
+      throw Error(err)
+    pf.text = output.join('')
+    pf.test = testFile.match( /^(.*)\.coffee/ )[1]
+    pf.finish( (err) ->
+      if err
+        throw Error(error)
+      cli.debug "v8 profile saved sucessfully"
+    )
+  )
+
+parseV8Log = ( logFile, testFile, tmpDir, callback ) ->
+  v8path = process.env.D8_PATH
+  if !v8path
+    cli.error "D8_PATH must be set when using the v8 profiler"
+    callback( Error( "d8 path must be set" ) )
+  
+  v8_command = v8path + "/tools/mac-tick-processor"
+  child = spawn v8_command, [ path.resolve(logFile) ], { cwd: v8path }
+
+  global.ACTIVE_CHILDREN.push child
+
+  out = []
+  child.stdout.on 'data', (data) ->
+    out.push( data.toString() )
+
+  child.on 'exit', (code) ->
+    global.ACTIVE_CHILDREN.splice( global.ACTIVE_CHILDREN.indexOf(child))
+    cli.debug "v8 processed successfully"
+    saveProfilerReport( out, testFile, tmpDir )
+    callback()
+
+runAllTests = (tmpDir, options, tests, callback) ->
   cli.info "Running tests."
-  worker = runTest.bind(@, tmpDir)
+  worker = runTest.bind(@, tmpDir, options)
   queue = async.queue worker, 4
   queue.drain = ->
     callback(undefined)
@@ -76,7 +129,6 @@ exports.command =  (args, options, config) ->
   # Clone to tmp dir
   # Parse revs
   # Get tests
-
   async.auto
     cloneToTemp: Watson.Utils.cloneToTemp
     parseRevs: parseRevs.bind(@, args)
@@ -111,7 +163,7 @@ exports.command =  (args, options, config) ->
         cli.debug "Running tests for sha #{sha}"
         Watson.Utils.checkoutSHAWithTests revision, sha, tmpDir, rootDir, options, config, (err) ->
           return callback(err) if err
-          runAllTests(tmpDir, localTests, callback)
+          runAllTests(tmpDir, options, localTests, callback)
       , callback)
     ],
     printSummary: ['runTests', (results, callback) ->

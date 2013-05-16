@@ -17,10 +17,10 @@ Report = sequelize.define 'Report',
     allowNull: false
   userAgent:
     type: Sequelize.STRING
-    allowNull: false
+    allowNull: true
   os:
     type: Sequelize.STRING
-    allowNull: false
+    allowNull: true
 ,
   underscore: true
   classMethods:
@@ -51,8 +51,25 @@ Point = sequelize.define 'Point',
 ,
   underscore: true
 
+ProfilerReport = sequelize.define 'ProfilerReport',
+  text:
+    type: Sequelize.TEXT
+    allowNull: true
+  test:
+    type: Sequelize.STRING
+    allowNull: false
+  branch:
+    type: Sequelize.STRING
+    allowNull: false
+  human:
+    type: Sequelize.STRING
+    allowNull: false
+  sha:
+    type: Sequelize.STRING
+    allowNull: false
+    
 
 Report.hasMany Point
 Point.belongsTo Report
 
-module.exports = {Report, Point}
+module.exports = {Report, Point, ProfilerReport}
