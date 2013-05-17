@@ -63,12 +63,12 @@ runTest = (tmpDir, options, testFile, callback) ->
 
     #v8 prof will include the path in the report so we want it to be constant
     destFile = path.resolve("./#{testFile}-v8.log") 
-    
-    fs.rename( tmpDir + "/v8.log", destFile, (err) -> console.warn( "couldn't rename file: #{destFile}: #{err}") if err)
-  
-    if options.v8prof
-      cli.debug "Running V8 Profile Analyzer"
-      parseV8Log( destFile, testFile, tmpDir, (err) -> fs.unlink( destFile ) )
+    if fs.existsSync( tmpDir + "/v8.log" )
+      fs.rename( tmpDir + "/v8.log", destFile, (err) -> console.warn( "couldn't rename file: #{destFile}: #{err}") if err)
+      if options.v8prof
+        cli.debug "Running V8 Profile Analyzer"
+        parseV8Log( destFile, testFile, tmpDir, (err) -> fs.unlink( destFile, (err) -> console.warn("rename failed: #{err}") if err ) )
+
     if code != 0
       callback(Error("Benchmark #{testFile} didn't run successfully on #{currentGitStatus}! See error above."))
     else

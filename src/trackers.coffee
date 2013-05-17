@@ -57,6 +57,11 @@ class ProfileTracker extends Tracker
   branchy: null
   
   setup: (callback) =>
+    sequelize = Utils.connect()
+    sequelize.query( 'describe ProfilerReports' ).success( (rows) ->
+      sequelize.query('alter table ProfilerReports MODIFY text LONGTEXT') if rows.text.type == 'TEXT'
+    )
+    
     @_getSHADescription ( err, sha, human, branch ) =>
       return callback(err) if err
       @sha = sha
