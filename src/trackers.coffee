@@ -12,6 +12,7 @@ class Tracker
     @points = []
     @userAgent = "node #{process.version}"
     @os = process.platform
+    @cwd = undefined
 
   setup: (callback) ->
     @report = Data.Report.build(key: @key, metric: @metric)
@@ -41,12 +42,44 @@ class Tracker
       callback(err)
 
   _getSHADescription: (callback) ->
-    exec 'git name-rev HEAD && git describe HEAD && git log --pretty=format:"%s (%an)" HEAD...HEAD~1', (err, stdout, stderr) ->
+    options = {}
+    options.cwd = @cwd if @cwd
+    exec 'git name-rev HEAD && git describe HEAD && git log --pretty=format:"%s (%an)" HEAD...HEAD~1',options, (err, stdout, stderr) ->
+
       [branch, sha, human] = stdout.toString().trim().split('\n')
       branch = branch.replace('HEAD ', '')
       human = "[#{branch}] #{human}"
-      callback(err, sha, human)
+      callback(err, sha, human, branch)
 
+class ProfileTracker extends Tracker
+  sha: null
+  human: null
+  branchy: null
+  
+  setup: (callback) =>
+    sequelize = Utils.connect()
+    sequelize.query( 'describe ProfilerReports' ).success( (rows) ->
+      sequelize.query('alter table ProfilerReports MODIFY text LONGTEXT') if rows.text.type == 'TEXT'
+    )
+    
+    @_getSHADescription ( err, sha, human, branch ) =>
+      return callback(err) if err
+      @sha = sha
+      @human = human
+      @branchy = branch
+      callback()
+
+  finish: (callback) ->
+    Data.ProfilerReport.findAll( where: { sha: @sha, test: @test } ).success(( oldReports ) =>
+      opts = { sha: @sha, test: @test, text: @text, branch: @branchy, human: @human }
+      oldReport.destroy() for oldReport in oldReports
+      profile = Data.ProfilerReport.build(opts )
+      profile.save().error( (err) ->
+        callback(err)
+      )
+    ).error (err) ->
+      callback(err)
+    
 class MemoryTracker extends Tracker
   metric: 'memory'
   defaultOptions:
@@ -158,4 +191,4 @@ class TimeTracker extends Tracker
       key: @key
     }
 
-module.exports = {Tracker, MemoryTracker, TimeTracker}
+module.exports = {Tracker, MemoryTracker, TimeTracker, ProfileTracker}
