@@ -1,11 +1,19 @@
 Benchmark = require 'benchmark'
+async     = require 'async'
 reqwest   = require './reqwest.min'
+
+getUrlVars = ->
+  vars = {}
+  window.location.href.replace /[?&]+([^=&]+)=([^&]*)/gi, (m,key,value) ->
+    vars[key] = value
+  vars
+
 
 class Tracker
   constructor: ->
     @points = []
 
-  _saveReport: (data, callback) ->
+  _saveReport: (data, callback) =>
     reqwest
       url: '/save_results'
       method: 'post'
@@ -16,8 +24,22 @@ class Tracker
         name: @name
         data: data
       }
-      success: (resp) -> callback(null)
+      success: (resp) ->
+        console.log "Report saved!"
+        callback(null)
       error: (err) -> callback(err)
+
+  _killWorker: (callback) ->
+    token = getUrlVars()['token']
+    if token?
+      reqwest
+        url: "/kill_worker/#{token}"
+        method: 'post'
+        type: 'json'
+        data: '{"success":true}'
+        contentType: 'application/json'
+        success: (resp) -> callback(null)
+        error: (err) -> callback(err)
 
 class TimeTracker extends Tracker
   metric: 'times'
@@ -29,10 +51,7 @@ class TimeTracker extends Tracker
       @suite.abort()
       throw bench.error
     @suite.on 'complete', =>
-      @suite.forEach (bench) =>
-        @_saveReport bench, (err) ->
-          throw err if err
-          console.log "Report saved!"
+      async.each @suite, @_saveReport, @_killWorker
     callback(null, @suite, @)
 
 module.exports = {TimeTracker}

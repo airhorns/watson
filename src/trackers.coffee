@@ -14,24 +14,24 @@ class Tracker
     @os = process.platform
 
   setup: (callback) ->
-    @report = Data.Report.build(key: @key, metric: @metric)
     @_getSHADescription (err, sha, human) =>
-      return callback(err) if err
-      @report.sha = sha
-      @report.human = human
-      callback()
+      unless err
+        @sha = sha
+        @human = human
+      callback(err)
 
   finish: (callback) ->
-    Data.Report.findAll(where: {sha: @report.sha, key: @key, metric: @metric}).success((oldReports) =>
+    Data.Report.findAll(where: {sha: @sha, key: @key, metric: @metric}).success((oldReports) =>
       oldReport.destroyWithPoints() for oldReport in oldReports
 
-      @report.save().error((error) ->
+      report = @_buildReport()
+      report.save().error((error) ->
         callback(error)
       ).success(=>
         points = for point in @points
           Data.Point.build(x: point[0], y: point[1])
 
-        @report.setPoints(points).success(->
+        report.setPoints(points).success(->
           callback()
         ).error((error) ->
           callback(error)
@@ -46,6 +46,18 @@ class Tracker
       branch = branch.replace('HEAD ', '')
       human = "[#{branch}] #{human}"
       callback(err, sha, human)
+
+  _buildReport: -> Data.Report.build(@_reportParams())
+
+  _reportParams: ->
+    {
+      sha: @sha
+      human: @human
+      metric: @metric
+      userAgent: @userAgent
+      os: @os
+      key: @key
+    }
 
 class MemoryTracker extends Tracker
   metric: 'memory'
@@ -117,21 +129,15 @@ class TimeTracker extends Tracker
             console.log "Report saved!"
       callback(error, @suite, @)
 
-  setup: (callback) ->
-    @_getSHADescription (err, sha, human) =>
-      unless err
-        @sha = sha
-        @human = human
-      callback(err)
-
   _saveReport: (benchmark, callback) =>
     @key = "#{@name}: #{benchmark.name}"
-    Data.Report.findAll(where: @_reportParams()).success((oldReports) =>
+    params = @_reportParams()
+    params.key = @key
+    Data.Report.findAll(where: params).success((oldReports) =>
       oldReport.destroyWithPoints() for oldReport in oldReports
 
-      params = @_reportParams()
-      params.human = @human
-      report = Data.Report.build(params)
+      report = @_buildReport()
+      report.key = @key
       report.save().error((error) ->
         callback(error)
       ).success(=>
@@ -140,22 +146,13 @@ class TimeTracker extends Tracker
         deviationPoint = Data.Point.build(x: 2, y: benchmark.stats.deviation, note: "deviation")
         sizeDataPoint = Data.Point.build(x: 3, y: benchmark.stats.sample.length, note: "size")
 
-        report.setPoints([dataPoint, marginOfErrorPoint, deviationPoint, sizeDataPoint]).error((error) ->
+        report.setPoints([dataPoint, marginOfErrorPoint, deviationPoint, sizeDataPoint]).error((error) =>
           callback(error, report)
-        ).success(->
+        ).success(=>
           callback(undefined, report)
         )
       )
     ).error(callback)
     true
-
-  _reportParams: ->
-    {
-      sha: @sha
-      metric: @metric
-      userAgent: @userAgent
-      os: @os
-      key: @key
-    }
 
 module.exports = {Tracker, MemoryTracker, TimeTracker}

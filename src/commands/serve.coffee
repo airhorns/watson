@@ -1,5 +1,6 @@
 Watson     = require '../watson'
 Trackers   = require '../trackers'
+Data       = require '../objects'
 coffee     = require 'coffee-script'
 express    = require 'express'
 cli        = require 'cli'
@@ -97,6 +98,18 @@ exports.command = (args, options, config) ->
               res.end()
         else
           res.json(402, {status: "unknown metric"})
+
+    app.post '/kill_worker/:token', (req, res, next) ->
+      token = req.params['token']
+      record = Data.BrowserWorker.find(where: {token}).fail(next).success (record) ->
+        if record
+          Watson.Utils.browserStack().terminateWorker record.worker_id, (err) ->
+            return next(err) if err
+            cli.info "Terminated worker #{record.worker_id}"
+            res.json(200, {status: "killed"})
+        else
+          res.json(404, {status: "worker token not found"})
+
 
     app.use '/watson', express.static(path.join(__dirname, '..', 'web'))
     app.listen(5000)

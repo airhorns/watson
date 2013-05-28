@@ -52,7 +52,20 @@ Point = sequelize.define 'Point',
   underscore: true
 
 
+BrowserWorker = sequelize.define 'BrowserWorker',
+  token:
+    type: Sequelize.STRING
+    allowNull: false
+  worker_id:
+    type: Sequelize.STRING
+    allowNull: false
+  note:
+    type: Sequelize.STRING
+    allowNull: true
+,
+  underscore: true
+
 Report.hasMany Point
 Point.belongsTo Report
 
-module.exports = {Report, Point}
+module.exports = {Report, Point, BrowserWorker}

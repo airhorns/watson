@@ -1,5 +1,7 @@
-cli          = require 'cli'
-browserstack = require 'browserstack'
+cli    = require 'cli'
+crypto = require 'crypto'
+Utils  = require '../utils'
+Data   = require '../objects'
 
 $extend = (root, objs...) ->
   for obj in objs
@@ -8,6 +10,18 @@ $extend = (root, objs...) ->
 
 printBrowser = (b) -> "#{b.browser}#{if b.browser_version then ' v'+b.browser_version else ''} on #{b.os} #{b.os_version}, on #{b.device || 'default device'}"
 printWorker  = (w) -> "Worker #{w.id} with status #{w.status}"
+
+destroyRecordsForWorkerIds = (workerIds, inclusive = true, callback) ->
+  sql = if workerIds.length > 0
+    condition = if inclusive then "" else "NOT"
+    "worker_id #{condition} IN (#{workerIds.join()})"
+  else
+    "1=1"
+
+  Data.BrowserWorker.findAll({where: sql}).fail((e) -> throw e).success (records) ->
+    for record in records
+      record.destroy().fail((e) -> throw e)
+    callback?(records)
 
 defaultStack = [
   ["chrome", "27.0", "OS X", "Mountain Lion"]
@@ -35,11 +49,13 @@ defaultStack = [
   hash
 
 exports.command = (args, options, config) ->
-  client = browserstack.createClient({username: options.username, password: options.password})
+  client = Utils.browserStack()
+
   switch args[0]
     when 'kill_all'
       client.getWorkers (err, workers) ->
         throw err if err
+        destroyRecordsForWorkerIds workers.map((w) -> w.id), true
         workers.forEach (worker) ->
           client.terminateWorker worker.id, (err) ->
             throw err if err
@@ -55,10 +71,12 @@ exports.command = (args, options, config) ->
         return
       for url in urls
         defaultStack.forEach (settings) ->
-          settings = $extend({url}, settings)
+          token = crypto.randomBytes(20).toString('hex')
+          settings = $extend({url: url + "&token=#{token}"}, settings)
           client.createWorker settings, (err, worker) ->
             throw err if err
-            cli.info "Created worker ID=#{worker.id} heading to #{url} using #{printBrowser(settings)}"
+            Data.BrowserWorker.create({token: token, worker_id: worker.id, note: settings.url}).fail((err) -> throw err).success (record) ->
+              cli.info "Created worker ID=#{worker.id} heading to #{settings.url} using #{printBrowser(settings)}"
 
     when 'list_browsers'
       client.getBrowsers (err, browsers) ->
@@ -72,10 +90,19 @@ exports.command = (args, options, config) ->
 
     when 'kill_some'
       workerIds = args.slice(1)
+      destroyRecordsForWorkerIds workers.map((w) -> w.id), true
       workerIds.forEach (id) ->
         client.terminateWorker id, (err) ->
           throw err if err
           cli.info "Terminated worker #{worker.id}"
+
+    when 'sync'
+      client.getWorkers (err, workers) ->
+        throw err if err
+        ids = workers.map (w) -> w.id
+        destroyRecordsForWorkerIds ids, false, (records) ->
+          cli.info "Destroyed #{records.length} extraneous worker record(s)"
+          cli.info "Workers listed by the API: \n - " + workers.map(printWorker).join('\n - ')
 
     else
       cli.error "Unknown stack command #{args[0]}!"

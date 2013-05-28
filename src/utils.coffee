@@ -6,6 +6,11 @@ Sequelize     = require "sequelize"
 cli           = require 'cli'
 temp          = require 'temp'
 async         = require 'async'
+browserstack  = require 'browserstack'
+
+resolvePath = (p) ->
+  p = p.replace(/^~\//, process.env.HOME + '/');
+  path.resolve(p)
 
 Utils = module.exports =
   connect: ->
@@ -21,7 +26,7 @@ Utils = module.exports =
     sequelize
 
   getConfiguration: (configPath = './watson.json') ->
-    configPath = path.resolve(configPath)
+    configPath = resolvePath(configPath)
 
     if fs.existsSync(configPath)
       json = JSON.parse(fs.readFileSync(configPath))
@@ -40,6 +45,17 @@ Utils = module.exports =
       json
     else
       throw new Error("Couldn't find configuration at #{configPath}!")
+
+  browserStack: (configPath = '~/.browserstack_credentials') ->
+    configPath = resolvePath(configPath)
+    @_browserStackClient ?= do ->
+      if fs.existsSync(configPath)
+        json = JSON.parse(fs.readFileSync(configPath))
+        browserstack.createClient(json)
+      else
+        throw new Error("Couldn't find browserstack credentials at #{configPath}")
+
+    @_browserStackClient
 
   extend: (onto, objects...) ->
     for object in objects
