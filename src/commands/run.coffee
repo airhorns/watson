@@ -51,8 +51,7 @@ runTest = (tmpDir, testFile, callback) ->
 
   child.on 'exit', (code) ->
     global.ACTIVE_CHILDREN.splice(global.ACTIVE_CHILDREN.indexOf(child))
-    cli.debug "#{testFile} ran with exit code #{code}. Output:"
-    console.log out.join('')
+    cli.debug "#{testFile} ran with exit code #{code}. Output: \n#{out.join('')}"
     if code != 0
       callback(Error("Benchmark #{testFile} didn't run successfully on #{currentGitStatus}! See error above."))
     else

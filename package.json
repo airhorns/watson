@@ -17,7 +17,7 @@
     "node": "0.10.x"
   },
   "dependencies": {
-    "sequelize": "~>1.6.0",
+    "sequelize": "~>1.7.0-alpha2",
     "mysql": "2.0.0-alpha7",
     "coffee-script": "~>1.6.2",
     "profiler": "1.2.1",
