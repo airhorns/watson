@@ -2,7 +2,7 @@
   "author": "Harry Brundage <harry.brundage@jadedpixel.com>",
   "name": "watson",
   "description": "Memory Leak Sleuthing",
-  "version": "1.3.0",
+  "version": "1.4.0",
   "homepage": "http://github.com/hornairs/watson",
   "repository": {
     "type": "git",
