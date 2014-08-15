@@ -299,3 +299,8 @@ Options:
 #### `watson truncate`
 
 #### `watson report`
+
+
+## Contributing
+
+License: MIT
